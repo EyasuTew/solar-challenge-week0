@@ -101,12 +101,6 @@ if st.sidebar.button("🏆 Show Top Regions"):
         ],
         'Avg GHI': [0.5, 0.2, -0.1]
     }).sort_values('Avg GHI', ascending=False)
-    mock_rank = pd.DataFrame({
-        'Country': ['Sample Region 1',
-                     'Sample Region 2',
-                     'Sample Region 3'],
-        'Avg GHI': [0.5, 0.2, -0.1]
-    }).sort_values('Avg GHI', ascending=False)
     if uploaded_file is not None:
         custom_avg = df['GHI'].mean() if 'GHI' in df else np.nan
         custom_row = pd.DataFrame([['Custom Upload', custom_avg]],
@@ -116,5 +110,5 @@ if st.sidebar.button("🏆 Show Top Regions"):
             ignore_index=True).sort_values('Avg GHI', ascending=False)
     st.table(mock_rank)
 
-st.info("**Tip**: Higher GHI = better solar potential."+ 
+st.info("**Tip**: Higher GHI = better solar potential." +
         " Upload your CSV to analyze custom data—e.g., from EDA notebooks!")
