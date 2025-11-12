@@ -1,19 +1,20 @@
 # app/main.py
-# Main Streamlit app: Now with CSV upload for custom data analysis
+# Main Streamlit app: Now with CSV upload for custom data analysis (no country fallback)
 import streamlit as st
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 import io  # For reading uploaded file
-from utils import load_data, clean_data, get_summary_stats, rank_countries
+import numpy as np  # For simulated fallback
+from utils import clean_data, get_summary_stats, rank_countries  # Removed load_data dep
 
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
 sns.set_style("whitegrid")
 
 st.title("🌞 Solar Insights Dashboard")
-st.markdown("**Explore solar data interactively.** Upload your own CSV or select a country to filter, clean, and visualize GHI distributions/rankings.")
+st.markdown("**Explore solar data interactively.** Upload your CSV to analyze GHI distributions and rankings. (No upload? Use simulated sample data.)")
 
-# Sidebar: Controls + Upload Widget
+# Sidebar: Controls + Upload Widget (Primary Focus)
 st.sidebar.header("🛠️ Controls")
 uploaded_file = st.sidebar.file_uploader(
     "📁 Upload CSV Data",
@@ -21,13 +22,12 @@ uploaded_file = st.sidebar.file_uploader(
     help="Upload a CSV with columns like Timestamp, GHI, DNI, DHI, RH. Analyzes immediately!"
 )
 
-country = st.sidebar.selectbox("Country (Fallback if No Upload)", ['Benin', 'Sierra Leone', 'Togo'])
 rh_max = st.sidebar.slider("Max RH (%)", 70.0, 100.0, 95.0)
 cleaning = st.sidebar.checkbox("Apply Outlier Cleaning")
 
 @st.cache_data
 def process_df(df_input, rh_max, cleaning):
-    """Process DF (from upload or load): Clean and filter."""
+    """Process DF (from upload or simulated): Clean and filter."""
     if cleaning:
         df_input = clean_data(df_input)
     if 'RH' in df_input.columns:
@@ -43,10 +43,20 @@ if uploaded_file is not None:
     df = process_df(df, rh_max, cleaning)
     data_source = "Uploaded CSV"
 else:
-    # Fallback: Country Load
-    df = load_data(country)
+    # Fallback: Simulated Data (No Country Select; Always Same Sample)
+    timestamps = pd.date_range('2021-01-01', periods=1000, freq='h')
+    np.random.seed(42)
+    df = pd.DataFrame({
+        'GHI': np.random.normal(0, 1, 1000),
+        'DNI': np.random.normal(0, 0.5, 1000),
+        'DHI': np.random.normal(0, 0.8, 1000),
+        'RH': np.random.uniform(70, 100, 1000),
+        'Tamb': np.random.normal(25, 5, 1000),
+        'ModA': np.random.uniform(0, 10, 1000),
+        'ModB': np.random.uniform(0, 10, 1000)
+    }, index=timestamps)
     df = process_df(df, rh_max, cleaning)
-    data_source = f"{country} Dataset"
+    data_source = "Simulated Sample Data"
 
 if df.empty:
     st.warning("No data after filtering. Adjust controls or upload valid CSV.")
@@ -70,15 +80,18 @@ with col2:
     else:
         st.warning("No 'GHI' column found. Check CSV headers.")
 
-# Top Regions Table (Includes Upload if Present)
+# Top Regions Table (Mock for Simulated; Append Upload)
 if st.sidebar.button("🏆 Show Top Regions"):
     st.subheader("🏆 Top Regions Ranking (Avg GHI)")
-    rank_df = rank_countries()  # From pre-loaded countries
+    # Mock ranking for fallback (or use rank_countries if keeping countries)
+    mock_rank = pd.DataFrame({
+        'Country': ['Sample Region 1', 'Sample Region 2', 'Sample Region 3'],
+        'Avg GHI': [0.5, 0.2, -0.1]
+    }).sort_values('Avg GHI', ascending=False)
     if uploaded_file is not None:
-        # Append upload as "Custom" row
         custom_avg = df['GHI'].mean() if 'GHI' in df else np.nan
         custom_row = pd.DataFrame([['Custom Upload', custom_avg]], columns=['Country', 'Avg GHI'])
-        rank_df = pd.concat([rank_df, custom_row], ignore_index=True).sort_values('Avg GHI', ascending=False)
-    st.table(rank_df)
+        mock_rank = pd.concat([mock_rank, custom_row], ignore_index=True).sort_values('Avg GHI', ascending=False)
+    st.table(mock_rank)
 
 st.info("**Tip**: Higher GHI = better solar potential. Upload your CSV to analyze custom data—e.g., from EDA notebooks!")
