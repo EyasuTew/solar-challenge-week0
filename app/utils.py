@@ -3,6 +3,7 @@ import numpy as np
 from scipy import stats
 import os
 
+
 def load_data(country):
     file_map = {
         'Benin': '../data/benin_clean.csv',
@@ -26,6 +27,7 @@ def load_data(country):
         'Tamb': np.random.normal(25, 5, 1000)
     }, index=timestamps)
 
+
 def clean_data(df):
     key_cols = ['GHI', 'DNI', 'DHI']
     if all(col in df for col in key_cols):
@@ -43,6 +45,6 @@ def get_summary_stats(df):
 def rank_countries():
     countries = ['Benin', 'Sierra Leone', 'Togo']
     rankings = {c: load_data(c)['GHI'].mean() for c in countries}
-    return pd.DataFrame(list(rankings.items()), 
+    return pd.DataFrame(list(rankings.items()),
                         columns=['Country', 'Avg GHI']
                         ).sort_values('Avg GHI', ascending=False)
