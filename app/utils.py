@@ -19,13 +19,12 @@ def load_data(country):
     timestamps = pd.date_range('2021-01-01', periods=1000, freq='H')
     np.random.seed(42)
     return pd.DataFrame({
-        'GHI': np.random.normal(0, 1, 1000), 
-        'DNI': np.random.normal(0, 0.5, 1000), 
+        'GHI': np.random.normal(0, 1, 1000),
+        'DNI': np.random.normal(0, 0.5, 1000),
         'DHI': np.random.normal(0, 0.8, 1000),
-        'RH': np.random.uniform(70, 100, 1000), 
+        'RH': np.random.uniform(70, 100, 1000),
         'Tamb': np.random.normal(25, 5, 1000)
     }, index=timestamps)
-
 
 def clean_data(df):
     key_cols = ['GHI', 'DNI', 'DHI']

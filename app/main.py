@@ -1,5 +1,5 @@
 # app/main.py
-# Main Streamlit app: Now with CSV upload for custom data analysis (no country fallback)
+# Main Streamlit app: Now with CSV upload for custom data analysis
 import streamlit as st
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -12,15 +12,16 @@ sns.set_style("whitegrid")
 
 st.title("🌞 Solar Insights Dashboard")
 st.markdown("**Explore solar data interactively.**"+
-            " Upload your CSV to analyze GHI distributions and rankings. "+
+            " Upload your CSV to analyze GHI "+
+            "distributions and rankings. "+
             "(No upload? Use simulated sample data.)")
 
 # Sidebar: Controls + Upload Widget (Primary Focus)
 st.sidebar.header("🛠️ Controls")
 uploaded_file = st.sidebar.file_uploader(
     "📁 Upload CSV Data",
-    type=['csv'],
-    help="Upload a CSV with columns like "+
+    type = ['csv'],
+    help = "Upload a CSV with columns like "+
     "Timestamp, GHI, DNI, DHI, RH. Analyzes immediately!"
 )
 
@@ -47,8 +48,10 @@ if uploaded_file is not None:
     df = process_df(df, rh_max, cleaning)
     data_source = "Uploaded CSV"
 else:
-    # Fallback: Simulated Data (No Country Select; Always Same Sample)
-    timestamps = pd.date_range('2021-01-01', periods=1000, freq='h')
+    # Fallback: Simulated Data
+    timestamps = pd.date_range('2021-01-01', 
+                               periods=1000, 
+                               freq='h')
     np.random.seed(42)
     df = pd.DataFrame({
         'GHI': np.random.normal(0, 1, 1000),
@@ -63,7 +66,8 @@ else:
     data_source = "Simulated Sample Data"
 
 if df.empty:
-    st.warning("No data after filtering. Adjust controls or upload valid CSV.")
+    st.warning("No data after filtering. "+
+               "Adjust controls or upload valid CSV.")
     st.stop()
 
 # Main Layout: Stats and Plot
@@ -79,26 +83,29 @@ with col2:
     if 'GHI' in df.columns:
         fig, ax = plt.subplots(figsize=(6, 4))
         sns.boxplot(y='GHI', data=df, ax=ax, color='orange')
-        ax.set_title(f"GHI Distribution - {data_source} (RH ≤ {rh_max}%)")
+        ax.set_title(f"GHI Distribution -"+
+                     " {data_source} (RH ≤ {rh_max}%)")
         st.pyplot(fig)
     else:
         st.warning("No 'GHI' column found. Check CSV headers.")
 
-# Top Regions Table (Mock for Simulated; Append Upload)
+# Top Regions Table (Mock)
 if st.sidebar.button("🏆 Show Top Regions"):
     st.subheader("🏆 Top Regions Ranking (Avg GHI)")
-    # Mock ranking for fallback (or use rank_countries if keeping countries)
+    # Mock ranking for fallback
     mock_rank = pd.DataFrame({
-        'Country': ['Sample Region 1', 'Sample Region 2', 'Sample Region 3'],
-        'Avg GHI': [0.5, 0.2, -0.1]
-    }).sort_values('Avg GHI', ascending=False)
+        'Country' : ['Sample Region 1', 
+                     'Sample Region 2', 
+                     'Sample Region 3'],
+        'Avg GHI' : [0.5, 0.2, -0.1]
+    }).sort_values('Avg GHI', ascending = False)
     if uploaded_file is not None:
         custom_avg = df['GHI'].mean() if 'GHI' in df else np.nan
         custom_row = pd.DataFrame([['Custom Upload', custom_avg]], 
                                   columns=['Country', 'Avg GHI'])
         mock_rank = pd.concat(
             [mock_rank, custom_row], 
-            ignore_index=True).sort_values('Avg GHI', ascending=False)
+            ignore_index = True).sort_values('Avg GHI', ascending = False)
     st.table(mock_rank)
 
 st.info("**Tip**: Higher GHI = better solar potential."+
