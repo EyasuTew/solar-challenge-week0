@@ -5,20 +5,23 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 import numpy as np  # For simulated fallback
-from utils import clean_data, get_summary_stats, rank_countries  # Removed load_data dep
+from utils import clean_data, get_summary_stats
 
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
 sns.set_style("whitegrid")
 
 st.title("🌞 Solar Insights Dashboard")
-st.markdown("**Explore solar data interactively.** Upload your CSV to analyze GHI distributions and rankings. (No upload? Use simulated sample data.)")
+st.markdown("**Explore solar data interactively.**"+
+            " Upload your CSV to analyze GHI distributions and rankings. "+
+            "(No upload? Use simulated sample data.)")
 
 # Sidebar: Controls + Upload Widget (Primary Focus)
 st.sidebar.header("🛠️ Controls")
 uploaded_file = st.sidebar.file_uploader(
     "📁 Upload CSV Data",
     type=['csv'],
-    help="Upload a CSV with columns like Timestamp, GHI, DNI, DHI, RH. Analyzes immediately!"
+    help="Upload a CSV with columns like "+
+    "Timestamp, GHI, DNI, DHI, RH. Analyzes immediately!"
 )
 
 rh_max = st.sidebar.slider("Max RH (%)", 70.0, 100.0, 95.0)
@@ -91,8 +94,12 @@ if st.sidebar.button("🏆 Show Top Regions"):
     }).sort_values('Avg GHI', ascending=False)
     if uploaded_file is not None:
         custom_avg = df['GHI'].mean() if 'GHI' in df else np.nan
-        custom_row = pd.DataFrame([['Custom Upload', custom_avg]], columns=['Country', 'Avg GHI'])
-        mock_rank = pd.concat([mock_rank, custom_row], ignore_index=True).sort_values('Avg GHI', ascending=False)
+        custom_row = pd.DataFrame([['Custom Upload', custom_avg]], 
+                                  columns=['Country', 'Avg GHI'])
+        mock_rank = pd.concat(
+            [mock_rank, custom_row], 
+            ignore_index=True).sort_values('Avg GHI', ascending=False)
     st.table(mock_rank)
 
-st.info("**Tip**: Higher GHI = better solar potential. Upload your CSV to analyze custom data—e.g., from EDA notebooks!")
+st.info("**Tip**: Higher GHI = better solar potential."+
+        " Upload your CSV to analyze custom data—e.g., from EDA notebooks!")
