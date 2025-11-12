@@ -4,7 +4,6 @@ import streamlit as st
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
-import io  # For reading uploaded file
 import numpy as np  # For simulated fallback
 from utils import clean_data, get_summary_stats, rank_countries  # Removed load_data dep
 
@@ -25,6 +24,7 @@ uploaded_file = st.sidebar.file_uploader(
 rh_max = st.sidebar.slider("Max RH (%)", 70.0, 100.0, 95.0)
 cleaning = st.sidebar.checkbox("Apply Outlier Cleaning")
 
+
 @st.cache_data
 def process_df(df_input, rh_max, cleaning):
     """Process DF (from upload or simulated): Clean and filter."""
@@ -33,6 +33,7 @@ def process_df(df_input, rh_max, cleaning):
     if 'RH' in df_input.columns:
         df_input = df_input[df_input['RH'] <= rh_max]
     return df_input
+
 
 # Load/Process Data Dynamically
 if uploaded_file is not None:
