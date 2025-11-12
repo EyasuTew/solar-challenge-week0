@@ -1,44 +1,84 @@
+# app/main.py
+# Main Streamlit app: Now with CSV upload for custom data analysis
 import streamlit as st
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
+import io  # For reading uploaded file
 from utils import load_data, clean_data, get_summary_stats, rank_countries
 
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
 sns.set_style("whitegrid")
 
 st.title("🌞 Solar Insights Dashboard")
-st.markdown("**Explore solar data interactively.** Select country, filter RH, and view GHI distributions/rankings.")
+st.markdown("**Explore solar data interactively.** Upload your own CSV or select a country to filter, clean, and visualize GHI distributions/rankings.")
 
+# Sidebar: Controls + Upload Widget
 st.sidebar.header("🛠️ Controls")
-country = st.sidebar.selectbox("Country", ['Benin', 'Sierra Leone', 'Togo'])
+uploaded_file = st.sidebar.file_uploader(
+    "📁 Upload CSV Data",
+    type=['csv'],
+    help="Upload a CSV with columns like Timestamp, GHI, DNI, DHI, RH. Analyzes immediately!"
+)
+
+country = st.sidebar.selectbox("Country (Fallback if No Upload)", ['Benin', 'Sierra Leone', 'Togo'])
 rh_max = st.sidebar.slider("Max RH (%)", 70.0, 100.0, 95.0)
 cleaning = st.sidebar.checkbox("Apply Outlier Cleaning")
 
 @st.cache_data
-def process_df(country, rh_max, cleaning):
-    df = load_data(country)
+def process_df(df_input, rh_max, cleaning):
+    """Process DF (from upload or load): Clean and filter."""
     if cleaning:
-        df = clean_data(df)
-    return df[df['RH'] <= rh_max] if 'RH' in df else df
+        df_input = clean_data(df_input)
+    if 'RH' in df_input.columns:
+        df_input = df_input[df_input['RH'] <= rh_max]
+    return df_input
 
-df = process_df(country, rh_max, cleaning)
+# Load/Process Data Dynamically
+if uploaded_file is not None:
+    # Upload Mode: Read and process uploaded CSV
+    df = pd.read_csv(uploaded_file, parse_dates=['Timestamp'])
+    if 'Timestamp' in df.columns:
+        df.set_index('Timestamp', inplace=True)
+    df = process_df(df, rh_max, cleaning)
+    data_source = "Uploaded CSV"
+else:
+    # Fallback: Country Load
+    df = load_data(country)
+    df = process_df(df, rh_max, cleaning)
+    data_source = f"{country} Dataset"
 
+if df.empty:
+    st.warning("No data after filtering. Adjust controls or upload valid CSV.")
+    st.stop()
+
+# Main Layout: Stats and Plot
 col1, col2 = st.columns([1, 2])
 with col1:
-    st.subheader("📊 Stats")
-    if not df.empty:
-        st.dataframe(get_summary_stats(df))
+    st.subheader("📊 Summary Stats")
+    summary = get_summary_stats(df)
+    st.dataframe(summary, use_container_width=True)
+    st.caption(f"Source: {data_source} | Rows: {len(df)}")
+
 with col2:
     st.subheader("📈 GHI Boxplot")
-    if not df.empty:
-        fig, ax = plt.subplots()
+    if 'GHI' in df.columns:
+        fig, ax = plt.subplots(figsize=(6, 4))
         sns.boxplot(y='GHI', data=df, ax=ax, color='orange')
-        ax.set_title(f"GHI - {country} (RH ≤ {rh_max}%)")
+        ax.set_title(f"GHI Distribution - {data_source} (RH ≤ {rh_max}%)")
         st.pyplot(fig)
+    else:
+        st.warning("No 'GHI' column found. Check CSV headers.")
 
+# Top Regions Table (Includes Upload if Present)
 if st.sidebar.button("🏆 Show Top Regions"):
-    st.subheader("Top Regions Table")
-    st.table(rank_countries())
+    st.subheader("🏆 Top Regions Ranking (Avg GHI)")
+    rank_df = rank_countries()  # From pre-loaded countries
+    if uploaded_file is not None:
+        # Append upload as "Custom" row
+        custom_avg = df['GHI'].mean() if 'GHI' in df else np.nan
+        custom_row = pd.DataFrame([['Custom Upload', custom_avg]], columns=['Country', 'Avg GHI'])
+        rank_df = pd.concat([rank_df, custom_row], ignore_index=True).sort_values('Avg GHI', ascending=False)
+    st.table(rank_df)
 
-st.info("**Tip**: Higher GHI = better solar potential. Ranking updates on load.")
+st.info("**Tip**: Higher GHI = better solar potential. Upload your CSV to analyze custom data—e.g., from EDA notebooks!")
